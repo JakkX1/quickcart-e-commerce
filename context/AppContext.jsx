@@ -1,99 +1,80 @@
 'use client'
-import { productsDummyData, userDummyData } from "@/assets/assets";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { productsDummyData, userDummyData } from "@/assets/assets"
+import { useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from "react"
+import { useUser } from "@clerk/nextjs"
 
-export const AppContext = createContext();
+const AppContext = createContext()
 
 export const useAppContext = () => {
-    return useContext(AppContext)
+  const context = useContext(AppContext)
+  if (!context) {
+    throw new Error('useAppContext must be used within AppContextProvider')
+  }
+  return context
 }
 
-export const AppContextProvider = (props) => {
-
-    const currency = process.env.NEXT_PUBLIC_CURRENCY
-    const router = useRouter()
-
-    const [products, setProducts] = useState([])
-    const [userData, setUserData] = useState(false)
-    const [isSeller, setIsSeller] = useState(true)
-    const [cartItems, setCartItems] = useState({})
-
-    const fetchProductData = async () => {
-        setProducts(productsDummyData)
+export const AppContextProvider = ({ children }) => {
+  const currency = process.env.NEXT_PUBLIC_CURRENCY || 'USD'
+  const router = useRouter()
+  const { user } = useUser()
+  
+  const [products, setProducts] = useState([])
+  const [userData, setUserData] = useState(null)
+  const [isSeller, setIsSeller] = useState(true)
+  const [cartItems, setCartItems] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cart')
+        return saved ? JSON.parse(saved) : {}
+      } catch (e) {
+        console.error("Failed to parse cart data", e)
+        return {}
+      }
     }
+    return {}
+  })
 
-    const fetchUserData = async () => {
-        setUserData(userDummyData)
+  // Persist cart to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(cartItems))
     }
+  }, [cartItems])
 
-    const addToCart = async (itemId) => {
-
-        let cartData = structuredClone(cartItems);
-        if (cartData[itemId]) {
-            cartData[itemId] += 1;
-        }
-        else {
-            cartData[itemId] = 1;
-        }
-        setCartItems(cartData);
-
+  const fetchProductData = async () => {
+    try {
+      setProducts(productsDummyData)
+    } catch (error) {
+      console.error("Failed to load products", error)
     }
+  }
 
-    const updateCartQuantity = async (itemId, quantity) => {
+  const addToCart = (itemId) => {
+    setCartItems(prev => ({
+      ...prev,
+      [itemId]: (prev[itemId] || 0) + 1
+    }))
+  }
 
-        let cartData = structuredClone(cartItems);
-        if (quantity === 0) {
-            delete cartData[itemId];
-        } else {
-            cartData[itemId] = quantity;
-        }
-        setCartItems(cartData)
+  useEffect(() => {
+    fetchProductData()
+  }, [])
 
-    }
+  const value = {
+    user,
+    currency,
+    router,
+    isSeller,
+    setIsSeller,
+    products,
+    cartItems,
+    addToCart
+  }
 
-    const getCartCount = () => {
-        let totalCount = 0;
-        for (const items in cartItems) {
-            if (cartItems[items] > 0) {
-                totalCount += cartItems[items];
-            }
-        }
-        return totalCount;
-    }
-
-    const getCartAmount = () => {
-        let totalAmount = 0;
-        for (const items in cartItems) {
-            let itemInfo = products.find((product) => product._id === items);
-            if (cartItems[items] > 0) {
-                totalAmount += itemInfo.offerPrice * cartItems[items];
-            }
-        }
-        return Math.floor(totalAmount * 100) / 100;
-    }
-
-    useEffect(() => {
-        fetchProductData()
-    }, [])
-
-    useEffect(() => {
-        fetchUserData()
-    }, [])
-
-    const value = {
-        currency, router,
-        isSeller, setIsSeller,
-        userData, fetchUserData,
-        products, fetchProductData,
-        cartItems, setCartItems,
-        addToCart, updateCartQuantity,
-        getCartCount, getCartAmount
-    }
-
-    return (
-        <AppContext.Provider value={value}>
-            {props.children}
-        </AppContext.Provider>
-    )
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  )
 }

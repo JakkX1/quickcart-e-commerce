@@ -1,24 +1,35 @@
-import { Outfit } from "next/font/google";
-import "./globals.css";
-import { AppContextProvider } from "@/context/AppContext";
-import { Toaster } from "react-hot-toast";
+import { Outfit } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
+import { AppContextProvider } from '@/context/AppContext';
+import './globals.css';
 
-const outfit = Outfit({ subsets: ['latin'], weight: ["300", "400", "500"] })
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['300', '400', '500'],
+  variable: '--font-outfit'
+});
 
 export const metadata = {
-  title: "QuickCart - GreatStack",
-  description: "E-Commerce with Next.js ",
+  title: 'QuickCart - GreatStack',
+  description: 'E-Commerce with Next.js',
 };
 
 export default function RootLayout({ children }) {
   return (
-      <html lang="en">
-        <body className={`${outfit.className} antialiased text-gray-700`} >
-          <Toaster />
-          <AppContextProvider>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: '#000000',
+        },
+      }}
+    >
+      <AppContextProvider>
+        <html lang="en" className={outfit.variable}>
+          <body className={`antialiased text-gray-700 ${outfit.className}`}>
             {children}
-          </AppContextProvider>
-        </body>
-      </html>
+          </body>
+        </html>
+      </AppContextProvider>
+    </ClerkProvider>
   );
 }
