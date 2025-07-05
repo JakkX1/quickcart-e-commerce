@@ -16,9 +16,8 @@ export const useAppContext = () => {
 
 export const AppContextProvider = ({ children }) => {
   const currency = process.env.NEXT_PUBLIC_CURRENCY || 'USD'
-  const router = useRouter()
   const { user } = useUser()
-  
+
   const [products, setProducts] = useState([])
   const [userData, setUserData] = useState(null)
   const [isSeller, setIsSeller] = useState(true)
@@ -64,7 +63,6 @@ export const AppContextProvider = ({ children }) => {
   const value = {
     user,
     currency,
-    router,
     isSeller,
     setIsSeller,
     products,
