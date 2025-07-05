@@ -1,8 +1,10 @@
 'use client'
 import { productsDummyData, userDummyData } from "@/assets/assets"
-import { useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useState } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useAuth, useUser } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import toast from "react-hot-toast"
 
 const AppContext = createContext()
 
@@ -17,10 +19,12 @@ export const useAppContext = () => {
 export const AppContextProvider = ({ children }) => {
   const currency = process.env.NEXT_PUBLIC_CURRENCY || 'USD'
   const { user } = useUser()
+  const router = useRouter()
+  const {getToken} = useAuth()
 
   const [products, setProducts] = useState([])
   const [userData, setUserData] = useState(null)
-  const [isSeller, setIsSeller] = useState(true)
+  const [isSeller, setIsSeller] = useState(false)
   const [cartItems, setCartItems] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -37,7 +41,11 @@ export const AppContextProvider = ({ children }) => {
   // Persist cart to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('cart', JSON.stringify(cartItems))
+      try {
+        localStorage.setItem('cart', JSON.stringify(cartItems))
+      } catch (e) {
+        console.error("Failed to persist cart", e)
+      }
     }
   }, [cartItems])
 
@@ -49,6 +57,28 @@ export const AppContextProvider = ({ children }) => {
     }
   }
 
+  const fetchUserData = async () => {
+    try {
+      if (user?.publicMetadata?.role === 'seller') {
+        setIsSeller(true)
+      }
+
+      const token = await getToken
+
+      const {data} = await axios.get('/api/user/data',{ headers: { Authorization: `Bearer ${token}`} })
+
+      if (data.success) {
+        setUserData(data.user)
+        setCartItems(data.user.cartItems)
+      } else{
+        toast.error(data.message)
+      }
+
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   const addToCart = (itemId) => {
     setCartItems(prev => ({
       ...prev,
@@ -56,18 +86,40 @@ export const AppContextProvider = ({ children }) => {
     }))
   }
 
+  const updateCartQuantity = (itemId, quantity) => {
+    setCartItems(prev => {
+      const newCart = { ...prev }
+      if (quantity <= 0) {
+        delete newCart[itemId]
+      } else {
+        newCart[itemId] = quantity
+      }
+      return newCart
+    })
+  }
+
+  const getCartCount = () => {
+    return Object.values(cartItems).reduce((sum, qty) => sum + qty, 0)
+  }
+
   useEffect(() => {
     fetchProductData()
-  }, [])
+    if (user) fetchUserData()
+  }, [user])
 
   const value = {
     user,
+    getToken,
     currency,
+    router,
     isSeller,
     setIsSeller,
     products,
     cartItems,
-    addToCart
+    addToCart,
+    updateCartQuantity,
+    getCartCount,
+    userData
   }
 
   return (
