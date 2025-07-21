@@ -1,0 +1,13 @@
+[33mf0dba70[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m all new changes, and additions made
+[33mad9e6c5[m all new changes
+[33m99a86ad[m fix:cart page and SSR issues and add empty state
+[33m222166d[m Fix: remove router from AppContext to prevent serialization error on Vercel build
+[33m29179c6[m Fix inngest syntax errors
+[33m613e170[m Fix inngest syntax errors
+[33m44f7d48[m First Commit
+[33mf964a33[m initial commit
+[33m21fb24a[m Added a few lines
+[33m6c48a90[m V1 7/2/2025 4:50PM
+[33mf690027[m Updated Config
+[33m6e2d053[m env file added
+[33mcfc85f5[m First commit
